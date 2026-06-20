@@ -6,4 +6,11 @@ langgraph
 pydantic-settings
 httpx
 boto3
-
+psycopg2-binary
+sqlalchemy
+structlog
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-langchain
+opentelemetry-instrumentation-requests
