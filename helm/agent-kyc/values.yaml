@@ -1,0 +1,18 @@
+namespace: agent-dev
+
+replicaCount: 1
+
+image:
+  repository: agent-kyc
+  tag: local
+  pullPolicy: IfNotPresent
+
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  ENV_NAME: dev
+  LOG_LEVEL: debug

@@ -1,0 +1,13 @@
+namespace: agent-sat
+replicaCount: 1
+image:
+  repository: agent-kyc
+  tag: sat
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+env:
+  ENV_NAME: sat
+  LOG_LEVEL: info

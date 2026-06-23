@@ -1,0 +1,13 @@
+namespace: agent-prod
+replicaCount: 2
+image:
+  repository: agent-kyc
+  tag: prod
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+env:
+  ENV_NAME: prod
+  LOG_LEVEL: warning

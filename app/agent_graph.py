@@ -1,38 +1,105 @@
-from typing import TypedDict
+from typing import TypedDict, Dict, Any
 from langgraph.graph import StateGraph, START, END
- 
+from app.tools.mcp_router import call_mcp_tools
+from app.guardrails.basic_guardrails import input_guardrail_check, output_guardrail_check
+
+
 class KYCState(TypedDict):
     customer_name: str
     request: str
+    input_allowed: bool
+    input_guardrail_reason: str
     intent: str
-    kyc_result: str
+    mcp_results: Dict[str, Any]
     risk_score: int
     decision: str
+    output_allowed: bool
+    output_guardrail_reason: str
+    final_response: str
+
+
+def input_guardrail(state: KYCState):
+    result = input_guardrail_check(state["request"])
+    return {
+        "input_allowed": result["allowed"],
+        "input_guardrail_reason": result["reason"]
+    }
+
 
 def classify_intent(state: KYCState):
-    return{"intent": "kyc_risk_check"}
+    if not state["input_allowed"]:
+        return {"intent": "blocked"}
+    return {"intent": "kyc_risk_check"}
 
-def run_kyc_check(state: KYCState):
-    return {"kyc_result": "KYC document verification completed"}
+
+def mcp_tool_router(state: KYCState):
+    if state["intent"] == "blocked":
+        return {"mcp_results": {}}
+
+    results = call_mcp_tools(
+        customer_name=state["customer_name"],
+        request=state["request"]
+    )
+    return {"mcp_results": results}
+
 
 def calculate_risk(state: KYCState):
-    risk_score = 75 if "test" in state["customer_name"].lower() else 25
-    return {"risk_score": risk_score}
+    if state["intent"] == "blocked":
+        return {"risk_score": 100}
+
+    mcp = state["mcp_results"]
+
+    score = 20
+
+    if mcp["postgres_profile"]["kyc_status"] != "verified":
+        score += 40
+
+    if mcp["snowflake_txn"]["suspicious_pattern"]:
+        score += 50
+
+    if mcp["oracle_profile"]["overdraft_flag"]:
+        score += 10
+
+    if "test" in state["customer_name"].lower():
+        score += 50
+
+    return {"risk_score": min(score, 100)}
+
 
 def make_decision(state: KYCState):
-    decision = "Manual Review Required" if state["risk_score"] >= 70 else "Approved"
+    if not state["input_allowed"]:
+        return {"decision": "Blocked by input guardrail"}
+
+    decision = "Manual review required" if state["risk_score"] >= 70 else "Approved"
     return {"decision": decision}
 
+
+def output_guardrail(state: KYCState):
+    response_text = f"KYC decision for {state['customer_name']}: {state['decision']}"
+    result = output_guardrail_check(response_text)
+
+    return {
+        "output_allowed": result["allowed"],
+        "output_guardrail_reason": result["reason"],
+        "final_response": response_text if result["allowed"] else "Response blocked by output guardrail"
+    }
+
+
 builder = StateGraph(KYCState)
+
+builder.add_node("input_guardrail", input_guardrail)
 builder.add_node("classify_intent", classify_intent)
-builder.add_node("run_kyc_check", run_kyc_check)
+builder.add_node("mcp_tool_router", mcp_tool_router)
 builder.add_node("calculate_risk", calculate_risk)
 builder.add_node("make_decision", make_decision)
+builder.add_node("output_guardrail", output_guardrail)
 
-builder.add_edge(START, "classify_intent")
-builder.add_edge("classify_intent", "run_kyc_check")
-builder.add_edge("run_kyc_check", "calculate_risk")
+builder.add_edge(START, "input_guardrail")
+builder.add_edge("input_guardrail", "classify_intent")
+builder.add_edge("classify_intent", "mcp_tool_router")
+builder.add_edge("mcp_tool_router", "calculate_risk")
 builder.add_edge("calculate_risk", "make_decision")
-builder.add_edge("make_decision", END)
+builder.add_edge("make_decision", "output_guardrail")
+builder.add_edge("output_guardrail", END)
 
-agent = builder.compile()
+graph = builder.compile()
