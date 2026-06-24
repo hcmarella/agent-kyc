@@ -1,9 +1,9 @@
 namespace: agent-sit
 replicaCount: 1
 image:
-  repository: agent-kyc
-  tag: sit
-  pullPolicy: IfNotPresent
+  repository: ghcr.io/hcmarella/agent-kyc
+  tag: local
+  pullPolicy: Always
 service:
   type: ClusterIP
   port: 80
