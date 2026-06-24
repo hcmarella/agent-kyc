@@ -2,7 +2,7 @@ namespace: agent-dev
 replicaCount: 1
 image:
   repository: ghcr.io/hcmarella/agent-kyc
-  tag: dev-c452f9a
+  tag: dev-c1ecc0c
   pullPolicy: Always
 service:
   type: ClusterIP
