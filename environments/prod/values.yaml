@@ -1,9 +1,9 @@
 namespace: agent-prod
 replicaCount: 2
 image:
-  repository: agent-kyc
-  tag: prod
-  pullPolicy: IfNotPresent
+  repository: ghcr.io/hcmarella/agent-kyc
+  tag: dev-7b16673
+  pullPolicy: Always
 service:
   type: ClusterIP
   port: 80
