@@ -2,9 +2,9 @@ namespace: agent-sit
 replicaCount: 1
 
 image:
-  repository: agent-kyc-sit
-  tag: local
-  pullPolicy: Never
+  repository: ghcr.io/hcmarella/agent-kyc
+  tag: dev-7b16673
+  pullPolicy: Always
 
 service:
   type: ClusterIP
