@@ -15,3 +15,5 @@ opentelemetry-instrumentation-fastapi
 opentelemetry-instrumentation-langchain
 opentelemetry-instrumentation-requests
 opentelemetry-exporter-otlp-proto-http
+pytest
+pytest-asyncio
