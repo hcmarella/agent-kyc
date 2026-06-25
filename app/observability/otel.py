@@ -6,7 +6,6 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExport
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
 
-
 def setup_tracing(service_name: str):
     resource = Resource.create({
         "service.name": service_name,
@@ -16,7 +15,7 @@ def setup_tracing(service_name: str):
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
 
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 
     if otlp_endpoint:
         exporter = OTLPSpanExporter(endpoint=f"{otlp_endpoint}/v1/traces")
@@ -24,5 +23,4 @@ def setup_tracing(service_name: str):
         exporter = ConsoleSpanExporter()
 
     provider.add_span_processor(BatchSpanProcessor(exporter))
-
     return trace.get_tracer(service_name)

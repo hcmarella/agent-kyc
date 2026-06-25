@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.agent_graph import graph
 from app.observability.otel import setup_tracing
+import os
+
  
 
 logging.basicConfig(level=logging.INFO)
@@ -13,6 +15,13 @@ tracer = setup_tracing("kyc-agent")
 
 app = FastAPI(title="KYC Agent API")
 FastAPIInstrumentor.instrument_app(app)
+service_name = os.getenv("OTEL_SERVICE_NAME", "agent-kyc-local")
+tracer = setup_tracing(service_name)
+
+FastAPIInstrumentor.instrument_app(app)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("agent-kyc")
 
 
 class AgentRequest(BaseModel):
@@ -34,12 +43,11 @@ def ready():
 def invoke_agent(payload: AgentRequest):
     logger.info({
         "event": "agent_invoked",
-        "customer_name": payload.customer_name,
-        "request": payload.request
+        "customer_name": payload.customer_name
     })
 
-    with tracer.start_as_current_span("kyc_agent") as span:
-        span.set_attribute("agent.customer_name", payload.customer_name)
+    with tracer.start_as_current_span("agent_kyc_invoke") as span:
+        span.set_attribute("customer.name", payload.customer_name)
         span.set_attribute("agent.request", payload.request)
 
         result = graph.invoke({
@@ -56,16 +64,12 @@ def invoke_agent(payload: AgentRequest):
             "final_response": ""
         })
 
-        span.set_attribute("agent.decision", result["decision"])
-        span.set_attribute("agent.risk_score", result["risk_score"])
-        span.set_attribute("agent.output_allowed", result["output_allowed"])
-
-        logger.info({
-            "event": "agent_completed",
-            "customer_name": payload.customer_name,
-            "decision": result["decision"],
-            "risk_score": result["risk_score"],
-            "output_allowed": result["output_allowed"]
-        })
+        span.set_attribute("agent.decision", result.get("decision", ""))
+        span.set_attribute("agent.risk_score", result.get("risk_score", 0))
+        span.set_attribute("guardrail.output_allowed", result.get("output_allowed", True))
 
         return result
+
+
+
+   
