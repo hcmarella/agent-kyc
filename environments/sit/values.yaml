@@ -13,4 +13,10 @@ service:
 
 env:
   ENV_NAME: sit
-  LOG_LEVEL: info
+  LOG_LEVEL: debug
+  OTEL_SERVICE_NAME: agent-kyc-sit
+  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+
+secrets:
+  MODEL_API_KEY: dummy-local-key
+  DB_PASSWORD: dummy-local-password
