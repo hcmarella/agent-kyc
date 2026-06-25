@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: langgraph-kyc-agent
+  name: agent-kyc
   namespace: {{ .Values.namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -19,20 +19,18 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
-          env:
-            - name: ENV_NAME
-              value: {{ .Values.env.ENV_NAME }}
-            - name: LOG_LEVEL
-              value: {{ .Values.env.LOG_LEVEL }}
-          livenessProbe:
-            httpGet:
-              path: /health/live
-              port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: agent-kyc-config
+            - secretRef:
+                name: agent-kyc-secret
           readinessProbe:
             httpGet:
               path: /health/ready
               port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 15

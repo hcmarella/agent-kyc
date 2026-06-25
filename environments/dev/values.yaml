@@ -11,3 +11,5 @@ service:
 env:
   ENV_NAME: dev
   LOG_LEVEL: debug
+secret:
+  otelEndpoint: ""
