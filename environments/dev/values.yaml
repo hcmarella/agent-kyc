@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/hcmarella/agent-kyc
-  tag: dev-311f351
+  tag: dev-9e234d1
   pullPolicy: Always
 
 service:
