@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-kyc-config
+  namespace: {{ .Values.namespace }}
+data:
+  ENV_NAME: "{{ .Values.env.ENV_NAME }}"
+  LOG_LEVEL: "{{ .Values.env.LOG_LEVEL }}"
+  OTEL_SERVICE_NAME: "{{ .Values.env.OTEL_SERVICE_NAME }}"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "{{ .Values.env.OTEL_EXPORTER_OTLP_ENDPOINT }}"
