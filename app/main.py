@@ -5,6 +5,10 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.agent_graph import graph
 from app.observability.otel import setup_tracing
 import os
+import time
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
+
 
  
 
@@ -22,6 +26,23 @@ FastAPIInstrumentor.instrument_app(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agent-kyc")
+REQUEST_COUNT = Counter(
+    "agent_kyc_requests_total",
+    "Total Agent KYC requests",
+    ["environment", "decision"]
+)
+
+GUARDRAIL_BLOCK_COUNT = Counter(
+    "agent_kyc_guardrail_blocks_total",
+    "Total guardrail blocked requests",
+    ["environment"]
+)
+
+REQUEST_LATENCY = Histogram(
+    "agent_kyc_request_latency_seconds",
+    "Agent KYC request latency",
+    ["environment"]
+)
 
 
 class AgentRequest(BaseModel):
@@ -41,15 +62,10 @@ def ready():
 
 @app.post("/agent/invoke")
 def invoke_agent(payload: AgentRequest):
-    logger.info({
-        "event": "agent_invoked",
-        "customer_name": payload.customer_name
-    })
+    start = time.time()
+    env_name = os.getenv("ENV_NAME", "local")
 
     with tracer.start_as_current_span("agent_kyc_invoke") as span:
-        span.set_attribute("customer.name", payload.customer_name)
-        span.set_attribute("agent.request", payload.request)
-
         result = graph.invoke({
             "customer_name": payload.customer_name,
             "request": payload.request,
@@ -64,12 +80,20 @@ def invoke_agent(payload: AgentRequest):
             "final_response": ""
         })
 
-        span.set_attribute("agent.decision", result.get("decision", ""))
+        decision = result.get("decision", "unknown")
+        REQUEST_COUNT.labels(environment=env_name, decision=decision).inc()
+        REQUEST_LATENCY.labels(environment=env_name).observe(time.time() - start)
+
+        if not result.get("input_allowed", True) or not result.get("output_allowed", True):
+            GUARDRAIL_BLOCK_COUNT.labels(environment=env_name).inc()
+
+        span.set_attribute("agent.decision", decision)
         span.set_attribute("agent.risk_score", result.get("risk_score", 0))
-        span.set_attribute("guardrail.output_allowed", result.get("output_allowed", True))
 
         return result
 
 
 
-   
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
