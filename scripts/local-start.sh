@@ -22,6 +22,7 @@ for ns in agent-dev agent-sit agent-sat agent-prod argocd monitoring; do
   kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
 done
 
+<<<<<<< HEAD
 echo "===== 4B. Clean unmanaged app objects ====="
 for ns in agent-dev agent-sit agent-sat agent-prod; do
   kubectl delete deployment agent-kyc -n $ns --ignore-not-found
@@ -30,6 +31,8 @@ for ns in agent-dev agent-sit agent-sat agent-prod; do
   kubectl delete secret agent-kyc-secret -n $ns --ignore-not-found
 done
 
+=======
+>>>>>>> main
 echo "===== 5. Deploy Helm apps ====="
 helm upgrade --install agent-kyc-dev ./helm/agent-kyc -f environments/dev/values.yaml -n agent-dev
 helm upgrade --install agent-kyc-sit ./helm/agent-kyc -f environments/sit/values.yaml -n agent-sit
